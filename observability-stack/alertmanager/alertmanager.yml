@@ -1,0 +1,38 @@
+global:
+  resolve_timeout: 5m
+
+# Routing tree: critical alerts page immediately; everything else batches to a
+# default receiver. Receivers use webhooks here so the config validates without
+# real credentials — swap in Slack/PagerDuty/email as needed.
+route:
+  receiver: default
+  group_by: ["alertname", "job"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity = "critical"
+      receiver: pager
+      group_wait: 10s
+      repeat_interval: 1h
+      continue: false
+
+inhibit_rules:
+  # A firing critical alert silences warnings for the same alertname/job.
+  - source_matchers:
+      - severity = "critical"
+    target_matchers:
+      - severity = "warning"
+    equal: ["alertname", "job"]
+
+receivers:
+  - name: default
+    webhook_configs:
+      - url: "http://example.invalid/hooks/default"
+        send_resolved: true
+
+  - name: pager
+    webhook_configs:
+      - url: "http://example.invalid/hooks/pager"
+        send_resolved: true

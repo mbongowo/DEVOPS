@@ -1,0 +1,8 @@
+# Local data volumes if ever bind-mounted
+data/
+*.local.yml
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store

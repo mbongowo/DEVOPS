@@ -1,0 +1,13 @@
+groups:
+  - name: request-aggregations
+    interval: 30s
+    rules:
+      # Per-job request rate over 5 minutes.
+      - record: job:http_requests:rate5m
+        expr: sum(rate(http_requests_total[5m])) by (job)
+
+      # Per-job 5xx error ratio over 5 minutes (drives the HighErrorRate alert).
+      - record: job:http_request_errors:ratio_rate5m
+        expr: |
+          sum(rate(http_requests_total{code=~"5.."}[5m])) by (job)
+            / sum(rate(http_requests_total[5m])) by (job)
