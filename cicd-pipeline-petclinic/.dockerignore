@@ -1,0 +1,16 @@
+# Keep the build context small and the image clean.
+.git
+.github
+target/
+*.iml
+.idea/
+.vscode/
+docs/
+k8s/
+docker-compose.yml
+README.md
+.env
+.env.*
+!.env.example
+Dockerfile
+.dockerignore
