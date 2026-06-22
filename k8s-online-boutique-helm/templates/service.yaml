@@ -1,0 +1,24 @@
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+{{- /* `default` treats false as empty, so resolve the enabled/service flags explicitly. */}}
+{{- $enabled := true }}{{- if hasKey $svc "enabled" }}{{- $enabled = $svc.enabled }}{{- end }}
+{{- $exposed := true }}{{- if hasKey $svc "service" }}{{- $exposed = $svc.service }}{{- end }}
+{{- if and $enabled $svc.port $exposed }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "online-boutique.labels" $root | nindent 4 }}
+    {{- include "online-boutique.selectorLabels" (dict "name" $name "root" $root) | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "online-boutique.selectorLabels" (dict "name" $name "root" $root) | nindent 4 }}
+  ports:
+    - name: tcp
+      port: {{ default $svc.port $svc.servicePort }}
+      targetPort: {{ $svc.port }}
+---
+{{- end }}
+{{- end }}

@@ -1,0 +1,21 @@
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+{{- if and $svc.external (default false $svc.external.enabled) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}-external
+  labels:
+    {{- include "online-boutique.labels" $root | nindent 4 }}
+    {{- include "online-boutique.selectorLabels" (dict "name" $name "root" $root) | nindent 4 }}
+spec:
+  type: {{ default "LoadBalancer" $svc.external.type }}
+  selector:
+    {{- include "online-boutique.selectorLabels" (dict "name" $name "root" $root) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ default 80 $svc.external.port }}
+      targetPort: {{ $svc.port }}
+---
+{{- end }}
+{{- end }}

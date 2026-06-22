@@ -1,0 +1,153 @@
+# Default values for the online-boutique chart.
+# Every microservice is described as an entry under `services`; the templates
+# range over this map to render a Deployment (+ Service) per entry. To add,
+# remove, or retune a service you edit data here — not the templates.
+
+# Image coordinates shared by all first-party services. Each service's image is
+# derived as "<repository>/<service-name>:<tag>" unless the service overrides
+# `image` explicitly (e.g. redis-cart uses the upstream redis image).
+image:
+  repository: gcr.io/google-samples/microservices-demo
+  tag: v0.10.2
+  pullPolicy: IfNotPresent
+
+# Applied to every service unless overridden per-service.
+defaultResources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+serviceAccount:
+  create: true
+  name: ""
+
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 1000
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+      - ALL
+
+services:
+  emailservice:
+    port: 8080
+    probe: { type: grpc }
+    env:
+      PORT: "8080"
+      DISABLE_PROFILER: "1"
+
+  checkoutservice:
+    port: 5050
+    probe: { type: grpc }
+    env:
+      PORT: "5050"
+      PRODUCT_CATALOG_SERVICE_ADDR: "productcatalogservice:3550"
+      SHIPPING_SERVICE_ADDR: "shippingservice:50051"
+      PAYMENT_SERVICE_ADDR: "paymentservice:50051"
+      EMAIL_SERVICE_ADDR: "emailservice:8080"
+      CURRENCY_SERVICE_ADDR: "currencyservice:7000"
+      CART_SERVICE_ADDR: "cartservice:7070"
+
+  recommendationservice:
+    port: 8080
+    probe: { type: grpc }
+    resources:
+      requests: { cpu: 100m, memory: 220Mi }
+      limits: { cpu: 200m, memory: 450Mi }
+    env:
+      PORT: "8080"
+      PRODUCT_CATALOG_SERVICE_ADDR: "productcatalogservice:3550"
+      DISABLE_PROFILER: "1"
+
+  frontend:
+    port: 8080
+    servicePort: 80
+    probe:
+      type: http
+      path: /_healthz
+      headers:
+        Cookie: "shop_session-id=x-readiness-probe"
+    external:
+      enabled: true
+      type: LoadBalancer
+      port: 80
+    env:
+      PORT: "8080"
+      PRODUCT_CATALOG_SERVICE_ADDR: "productcatalogservice:3550"
+      CURRENCY_SERVICE_ADDR: "currencyservice:7000"
+      CART_SERVICE_ADDR: "cartservice:7070"
+      RECOMMENDATION_SERVICE_ADDR: "recommendationservice:8080"
+      SHIPPING_SERVICE_ADDR: "shippingservice:50051"
+      CHECKOUT_SERVICE_ADDR: "checkoutservice:5050"
+      AD_SERVICE_ADDR: "adservice:9555"
+
+  paymentservice:
+    port: 50051
+    probe: { type: grpc }
+    env:
+      PORT: "50051"
+      DISABLE_PROFILER: "1"
+
+  productcatalogservice:
+    port: 3550
+    probe: { type: grpc }
+    env:
+      PORT: "3550"
+      DISABLE_PROFILER: "1"
+
+  cartservice:
+    port: 7070
+    probe: { type: grpc }
+    env:
+      REDIS_ADDR: "redis-cart:6379"
+
+  currencyservice:
+    port: 7000
+    probe: { type: grpc }
+    env:
+      PORT: "7000"
+      DISABLE_PROFILER: "1"
+
+  shippingservice:
+    port: 50051
+    probe: { type: grpc }
+    env:
+      PORT: "50051"
+      DISABLE_PROFILER: "1"
+
+  adservice:
+    port: 9555
+    probe: { type: grpc }
+    resources:
+      requests: { cpu: 200m, memory: 180Mi }
+      limits: { cpu: 300m, memory: 300Mi }
+    env:
+      PORT: "9555"
+
+  loadgenerator:
+    # Traffic generator: no inbound port, so no Service is rendered.
+    service: false
+    probe: { type: none }
+    # The load generator's image needs a writable filesystem for locust.
+    readOnlyRootFilesystem: false
+    env:
+      FRONTEND_ADDR: "frontend:80"
+      USERS: "10"
+
+  redis-cart:
+    port: 6379
+    image: redis:alpine
+    probe: { type: tcp }
+    readOnlyRootFilesystem: false
+    resources:
+      requests: { cpu: 70m, memory: 200Mi }
+      limits: { cpu: 125m, memory: 256Mi }

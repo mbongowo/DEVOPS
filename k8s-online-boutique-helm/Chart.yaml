@@ -1,0 +1,16 @@
+apiVersion: v2
+name: online-boutique
+description: A Helm chart for Google's Online Boutique microservices demo (11 services + Redis), driven by a single values-defined service map.
+type: application
+version: 0.1.0
+# Tracks the upstream microservices-demo release whose images this chart deploys.
+appVersion: "v0.10.2"
+keywords:
+  - microservices
+  - demo
+  - grpc
+home: https://github.com/GoogleCloudPlatform/microservices-demo
+sources:
+  - https://github.com/GoogleCloudPlatform/microservices-demo
+maintainers:
+  - name: mbongowo

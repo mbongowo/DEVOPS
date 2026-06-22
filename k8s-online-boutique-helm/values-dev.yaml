@@ -1,0 +1,14 @@
+# Lightweight overrides for local / dev clusters (e.g. kind, minikube).
+# Usage: helm install ob . -f values-dev.yaml
+
+services:
+  # No cloud load balancer locally — expose the frontend as ClusterIP and reach
+  # it with `kubectl port-forward`.
+  frontend:
+    external:
+      enabled: true
+      type: ClusterIP
+
+  # Skip the synthetic traffic generator in dev to save resources.
+  loadgenerator:
+    enabled: false

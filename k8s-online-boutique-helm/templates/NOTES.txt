@@ -1,0 +1,26 @@
+Online Boutique has been deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Services rendered:
+{{- range $name, $svc := .Values.services }}
+{{- $enabled := true }}{{- if hasKey $svc "enabled" }}{{- $enabled = $svc.enabled }}{{- end }}
+{{- if $enabled }}
+  - {{ $name }}{{ if $svc.port }} (port {{ default $svc.port $svc.servicePort }}){{ end }}
+{{- end }}
+{{- end }}
+
+Reach the storefront:
+{{- $fe := .Values.services.frontend }}
+{{- if and $fe $fe.external $fe.external.enabled }}
+{{- if eq (default "LoadBalancer" $fe.external.type) "LoadBalancer" }}
+  The frontend is exposed via a LoadBalancer Service. Get its external IP:
+
+    kubectl get svc frontend-external -n {{ .Release.Namespace }} \
+      -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+{{- end }}
+{{- end }}
+
+  Or port-forward without an external IP:
+
+    kubectl port-forward -n {{ .Release.Namespace }} svc/frontend {{ default 80 (.Values.services.frontend).servicePort }}:{{ default 80 (.Values.services.frontend).servicePort }}
+
+  then open http://localhost:{{ default 80 (.Values.services.frontend).servicePort }}

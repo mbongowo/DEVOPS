@@ -1,0 +1,15 @@
+# Packaged charts
+*.tgz
+
+# Helm dependency downloads
+charts/
+Chart.lock
+
+# Rendered output / local scratch
+rendered.yaml
+*.local.yaml
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store

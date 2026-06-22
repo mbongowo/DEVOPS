@@ -1,0 +1,13 @@
+# Patterns to ignore when packaging the chart.
+.git/
+.github/
+.gitignore
+.gitattributes
+*.tmproj
+*.bak
+*.orig
+.DS_Store
+.idea/
+.vscode/
+README.md
+ci/

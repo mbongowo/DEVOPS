@@ -1,0 +1,113 @@
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+{{- /* `default` treats false as empty, so test enabled explicitly to honour `enabled: false`. */}}
+{{- $enabled := true }}{{- if hasKey $svc "enabled" }}{{- $enabled = $svc.enabled }}{{- end }}
+{{- if $enabled }}
+{{- /* Effective read-only-root-fs flag: per-service override else the global default. */}}
+{{- $rofs := $root.Values.containerSecurityContext.readOnlyRootFilesystem }}
+{{- if hasKey $svc "readOnlyRootFilesystem" }}{{ $rofs = $svc.readOnlyRootFilesystem }}{{ end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "online-boutique.labels" $root | nindent 4 }}
+    {{- include "online-boutique.selectorLabels" (dict "name" $name "root" $root) | nindent 4 }}
+spec:
+  replicas: {{ default 1 $svc.replicas }}
+  selector:
+    matchLabels:
+      {{- include "online-boutique.selectorLabels" (dict "name" $name "root" $root) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "online-boutique.selectorLabels" (dict "name" $name "root" $root) | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "online-boutique.serviceAccountName" $root }}
+      securityContext:
+        {{- toYaml $root.Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ $name }}
+          image: "{{ $svc.image | default (printf "%s/%s:%s" $root.Values.image.repository $name $root.Values.image.tag) }}"
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          securityContext:
+            {{- $sc := deepCopy $root.Values.containerSecurityContext }}
+            {{- $_ := set $sc "readOnlyRootFilesystem" $rofs }}
+            {{- toYaml $sc | nindent 12 }}
+          {{- if $svc.port }}
+          ports:
+            - containerPort: {{ $svc.port }}
+          {{- end }}
+          {{- with $svc.env }}
+          env:
+            {{- range $k, $v := . }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          {{- end }}
+          {{- $probe := $svc.probe | default dict }}
+          {{- if eq (default "none" $probe.type) "grpc" }}
+          livenessProbe:
+            grpc:
+              port: {{ $svc.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            grpc:
+              port: {{ $svc.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          {{- else if eq $probe.type "http" }}
+          livenessProbe:
+            httpGet:
+              path: {{ $probe.path }}
+              port: {{ $svc.port }}
+              {{- with $probe.headers }}
+              httpHeaders:
+                {{- range $hk, $hv := . }}
+                - name: {{ $hk }}
+                  value: {{ $hv | quote }}
+                {{- end }}
+              {{- end }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: {{ $probe.path }}
+              port: {{ $svc.port }}
+              {{- with $probe.headers }}
+              httpHeaders:
+                {{- range $hk, $hv := . }}
+                - name: {{ $hk }}
+                  value: {{ $hv | quote }}
+                {{- end }}
+              {{- end }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          {{- else if eq $probe.type "tcp" }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ $svc.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket:
+              port: {{ $svc.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          {{- end }}
+          resources:
+            {{- toYaml ($svc.resources | default $root.Values.defaultResources) | nindent 12 }}
+          {{- if $rofs }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          {{- end }}
+      {{- if $rofs }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- end }}
+---
+{{- end }}
+{{- end }}
