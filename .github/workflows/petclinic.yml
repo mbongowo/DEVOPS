@@ -100,6 +100,11 @@ jobs:
     needs: build-push-image
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    # This job doesn't check out the repo, so override the workflow-level
+    # working-directory (which points at a not-yet-existing subdir).
+    defaults:
+      run:
+        working-directory: .
     environment:
       name: production
       url: https://example.com
