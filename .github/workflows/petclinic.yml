@@ -3,6 +3,7 @@ name: petclinic CI
 # Build + test on changes under cicd-pipeline-petclinic/. On a successful push to
 # main the image is published to GHCR and a gated `production` deploy job runs.
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
