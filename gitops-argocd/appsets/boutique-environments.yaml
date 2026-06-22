@@ -1,0 +1,46 @@
+# Generates one Online Boutique Application per environment from a single
+# template. Adding an environment is a one-line change to the list generator.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: boutique-environments
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - list:
+        elements:
+          - env: dev
+            namespace: boutique-dev
+            valueFile: values-dev.yaml
+            revision: HEAD
+          - env: prod
+            namespace: boutique-prod
+            valueFile: values.yaml
+            revision: HEAD
+  template:
+    metadata:
+      name: "boutique-{{.env}}"
+      labels:
+        environment: "{{.env}}"
+    spec:
+      project: boutique
+      source:
+        repoURL: https://github.com/mbongowo/k8s-online-boutique-helm
+        targetRevision: "{{.revision}}"
+        path: .
+        helm:
+          releaseName: "ob-{{.env}}"
+          valueFiles:
+            - "{{.valueFile}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{.namespace}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

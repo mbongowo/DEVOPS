@@ -1,0 +1,24 @@
+# Deploys shared platform configuration (kustomize overlay in this repo) into
+# the platform-dev namespace. Demonstrates a kustomize source alongside Helm.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-config
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: boutique
+  source:
+    repoURL: https://github.com/mbongowo/gitops-argocd
+    targetRevision: HEAD
+    path: manifests/platform-config/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

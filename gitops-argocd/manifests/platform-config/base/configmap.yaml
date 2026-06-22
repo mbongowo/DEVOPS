@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-settings
+data:
+  # Shared, non-secret platform defaults. Overlays patch these per environment.
+  LOG_LEVEL: "info"
+  FEATURE_RECOMMENDATIONS: "true"
+  CURRENCY_DEFAULT: "USD"

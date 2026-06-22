@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: boutique
+  namespace: argocd
+  # Keep the project until its applications are removed.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Online Boutique platform — apps and environment overlays.
+
+  # Only these repositories may be deployed by applications in this project.
+  sourceRepos:
+    - https://github.com/mbongowo/gitops-argocd
+    - https://github.com/mbongowo/k8s-online-boutique-helm
+
+  # Allowed deploy targets (in-cluster only, scoped namespaces).
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: boutique*
+    - server: https://kubernetes.default.svc
+      namespace: platform-*
+
+  # The project may create namespaces but nothing else cluster-scoped.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  # Anything namespaced is fair game within the allowed namespaces.
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

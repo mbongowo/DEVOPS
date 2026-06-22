@@ -1,0 +1,8 @@
+# Rendered / scratch output
+rendered.yaml
+*.local.yaml
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store

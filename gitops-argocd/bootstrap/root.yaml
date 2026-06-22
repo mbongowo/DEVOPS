@@ -1,0 +1,35 @@
+# App-of-Apps root. Point Argo CD at this one Application and it will sync every
+# Application/ApplicationSet/AppProject defined under the directories it watches.
+#
+#   argocd app create root \
+#     --repo https://github.com/mbongowo/gitops-argocd \
+#     --path bootstrap --dest-namespace argocd \
+#     --dest-server https://kubernetes.default.svc
+# or simply: kubectl apply -f bootstrap/root.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mbongowo/gitops-argocd
+    targetRevision: HEAD
+    # Watch the directories that hold child resources. `directory.recurse`
+    # picks up projects/, apps/ and appsets/ in one shot.
+    path: .
+    directory:
+      recurse: true
+      include: "{projects/*,apps/*,appsets/*}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ApplyOutOfSyncOnly=true

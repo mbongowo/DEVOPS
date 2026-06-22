@@ -1,0 +1,30 @@
+# Deploys the Online Boutique Helm chart (built in k8s-online-boutique-helm)
+# into a single boutique namespace. Multi-environment rollout is handled
+# separately by the ApplicationSet in appsets/boutique-environments.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: online-boutique
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: boutique
+  source:
+    repoURL: https://github.com/mbongowo/k8s-online-boutique-helm
+    targetRevision: HEAD
+    path: .
+    helm:
+      releaseName: ob
+      valueFiles:
+        - values-dev.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: boutique
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
