@@ -1,0 +1,90 @@
+name: Voting App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "docker-compose-voting-app/**"
+      - ".github/workflows/voting.yml"
+  pull_request:
+    paths:
+      - "docker-compose-voting-app/**"
+      - ".github/workflows/voting.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: docker-compose-voting-app
+
+jobs:
+  compose:
+    name: validate + build + smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: docker compose config
+        run: docker compose config -q
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Start the stack
+        run: docker compose up -d
+
+      - name: Wait for services to become healthy
+        run: |
+          set -e
+          for svc in redis db vote result; do
+            echo "::group::waiting for $svc"
+            for i in $(seq 1 30); do
+              status=$(docker inspect -f '{{ if .State.Health }}{{ .State.Health.Status }}{{ else }}none{{ end }}' \
+                "$(docker compose ps -q $svc)" 2>/dev/null || echo "missing")
+              echo "$svc: $status"
+              [ "$status" = "healthy" ] && break
+              # redis/db expose healthchecks; worker has none. vote/result do.
+              if [ "$i" = "30" ]; then echo "$svc never became healthy"; exit 1; fi
+              sleep 2
+            done
+            echo "::endgroup::"
+          done
+
+      - name: Cast votes through the vote service
+        run: |
+          set -e
+          # 3 votes for option A, 2 for option B, each from a distinct (cookie-less) voter.
+          for n in 1 2 3; do
+            curl -fsS -X POST -d 'vote=a' http://localhost:8080/ -o /dev/null
+          done
+          for n in 1 2; do
+            curl -fsS -X POST -d 'vote=b' http://localhost:8080/ -o /dev/null
+          done
+          echo "cast 5 votes"
+
+      - name: Verify results propagated to Postgres via the worker
+        run: |
+          set -e
+          for i in $(seq 1 20); do
+            body=$(curl -fsS http://localhost:8081/api/results)
+            echo "results: $body"
+            total=$(echo "$body" | jq '.votes.a + .votes.b')
+            if [ "$total" -ge 5 ]; then
+              echo "✅ all 5 votes recorded end-to-end (vote -> redis -> worker -> postgres -> result)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "❌ votes did not propagate in time"
+          exit 1
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

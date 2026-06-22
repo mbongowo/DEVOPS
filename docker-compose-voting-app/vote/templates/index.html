@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cats vs Dogs — Vote</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#1b2838; color:#fff;
+           text-align:center; padding-top:8vh; margin:0; }
+    h1 { font-weight:300; letter-spacing:1px; }
+    .options { display:flex; gap:0; max-width:520px; margin:2rem auto; }
+    button { flex:1; border:0; padding:2.5rem 0; font-size:1.4rem; color:#fff;
+             cursor:pointer; transition:filter .15s; }
+    button:hover { filter:brightness(1.15); }
+    .a { background:#2eb82e; border-radius:8px 0 0 8px; }
+    .b { background:#1f6fb2; border-radius:0 8px 8px 0; }
+    .note { color:#8fa3b8; font-size:.85rem; margin-top:2rem; }
+    .thanks { color:#9fe09f; min-height:1.2em; }
+  </style>
+</head>
+<body>
+  <h1>Cats vs Dogs</h1>
+  <p class="thanks">{% if vote %}Thanks — your vote for "{{ vote }}" was recorded.{% endif %}</p>
+  <form method="post">
+    <div class="options">
+      <button class="a" name="vote" value="a">{{ option_a }}</button>
+      <button class="b" name="vote" value="b">{{ option_b }}</button>
+    </div>
+  </form>
+  <p class="note">Served by container <code>{{ hostname }}</code></p>
+</body>
+</html>

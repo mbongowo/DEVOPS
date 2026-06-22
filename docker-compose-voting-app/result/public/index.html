@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Results — Cats vs Dogs</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#1b2838; color:#fff;
+           text-align:center; padding-top:8vh; margin:0; }
+    h1 { font-weight:300; }
+    .bar { display:flex; max-width:600px; height:90px; margin:2rem auto; border-radius:8px;
+           overflow:hidden; box-shadow:0 4px 20px rgba(0,0,0,.4); }
+    .a, .b { display:flex; align-items:center; justify-content:center; font-size:1.3rem;
+             transition:width .5s ease; white-space:nowrap; overflow:hidden; }
+    .a { background:#2eb82e; }
+    .b { background:#1f6fb2; }
+    .total { color:#8fa3b8; }
+  </style>
+</head>
+<body>
+  <h1>Live Results</h1>
+  <div class="bar">
+    <div class="a" id="bar-a" style="width:50%">—</div>
+    <div class="b" id="bar-b" style="width:50%">—</div>
+  </div>
+  <p class="total" id="total">waiting for votes…</p>
+  <script>
+    async function refresh() {
+      try {
+        const res = await fetch('/api/results');
+        const { labels, votes } = await res.json();
+        const total = votes.a + votes.b;
+        const pctA = total ? Math.round((votes.a / total) * 100) : 50;
+        const pctB = 100 - pctA;
+        document.getElementById('bar-a').style.width = pctA + '%';
+        document.getElementById('bar-b').style.width = pctB + '%';
+        document.getElementById('bar-a').textContent = `${labels.a}: ${votes.a} (${pctA}%)`;
+        document.getElementById('bar-b').textContent = `${labels.b}: ${votes.b} (${pctB}%)`;
+        document.getElementById('total').textContent = `${total} vote(s) cast`;
+      } catch (e) {
+        document.getElementById('total').textContent = 'results unavailable';
+      }
+    }
+    refresh();
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

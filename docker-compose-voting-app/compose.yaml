@@ -1,0 +1,112 @@
+name: voting-app
+
+# A five-service demo of Docker Compose orchestration:
+#   vote (Flask)  -> redis -> worker (Python) -> db (Postgres) -> result (Node)
+# Showcases: build contexts, healthchecks, depends_on conditions, two isolated
+# networks, a named volume, resource limits, env interpolation, and a seed profile.
+
+services:
+  vote:
+    build: ./vote
+    environment:
+      REDIS_HOST: redis
+      OPTION_A: ${OPTION_A:-Cats}
+      OPTION_B: ${OPTION_B:-Dogs}
+    ports:
+      - "${VOTE_PORT:-8080}:80"
+    networks: [front-tier, back-tier]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 192M
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks: [back-tier]
+    restart: unless-stopped
+
+  worker:
+    build: ./worker
+    environment:
+      REDIS_HOST: redis
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB:-votes}
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    networks: [back-tier]
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-votes}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-votes}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks: [back-tier]
+    restart: unless-stopped
+
+  result:
+    build: ./result
+    environment:
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB:-votes}
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      OPTION_A: ${OPTION_A:-Cats}
+      OPTION_B: ${OPTION_B:-Dogs}
+    ports:
+      - "${RESULT_PORT:-8081}:80"
+    networks: [front-tier, back-tier]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Optional load generator. Reuses the vote image; only runs when explicitly
+  # requested: `docker compose --profile seed run --rm seed`.
+  seed:
+    build: ./vote
+    profiles: ["seed"]
+    entrypoint: ["python", "seed.py"]
+    environment:
+      REDIS_HOST: redis
+      SEED_COUNT: ${SEED_COUNT:-100}
+    networks: [back-tier]
+    depends_on:
+      redis:
+        condition: service_healthy
+
+networks:
+  front-tier:
+  back-tier:
+
+volumes:
+  db-data:
