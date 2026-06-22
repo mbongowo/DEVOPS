@@ -1,0 +1,27 @@
+# Local .terraform directories and lock-only state
+**/.terraform/*
+
+# State files — never commit; they may contain secrets
+*.tfstate
+*.tfstate.*
+.terraform.tfstate.lock.info
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Variable files that may hold real values / secrets
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+# Keep the curated environment files under version control
+!environments/*.tfvars
+
+# CLI config and plan output
+.terraformrc
+terraform.rc
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
