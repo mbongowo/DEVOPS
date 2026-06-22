@@ -1,0 +1,67 @@
+name: Observability
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "observability-stack/**"
+      - ".github/workflows/observability.yml"
+  pull_request:
+    paths:
+      - "observability-stack/**"
+      - ".github/workflows/observability.yml"
+
+permissions:
+  contents: read
+
+env:
+  PROM_VERSION: "3.12.0"
+  AM_VERSION: "0.28.1"
+
+defaults:
+  run:
+    working-directory: observability-stack
+
+jobs:
+  validate:
+    name: promtool + amtool + compose
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install promtool
+        run: |
+          curl -sSLo prom.tar.gz \
+            "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz"
+          tar -xzf prom.tar.gz
+          sudo mv "prometheus-${PROM_VERSION}.linux-amd64/promtool" /usr/local/bin/
+
+      - name: Install amtool
+        run: |
+          curl -sSLo am.tar.gz \
+            "https://github.com/prometheus/alertmanager/releases/download/v${AM_VERSION}/alertmanager-${AM_VERSION}.linux-amd64.tar.gz"
+          tar -xzf am.tar.gz
+          sudo mv "alertmanager-${AM_VERSION}.linux-amd64/amtool" /usr/local/bin/
+
+      - name: promtool check config
+        run: cd prometheus && promtool check config prometheus.yml
+
+      - name: promtool check rules
+        run: promtool check rules prometheus/rules/*.yml
+
+      - name: promtool test rules
+        run: promtool test rules prometheus/tests/rules_test.yml
+
+      - name: amtool check-config
+        run: amtool check-config alertmanager/alertmanager.yml
+
+      - name: Validate Grafana dashboards (JSON)
+        run: |
+          for f in grafana/provisioning/dashboards/*.json; do
+            echo "Validating $f"
+            jq empty "$f"
+          done
+
+      - name: docker compose config
+        run: docker compose -f docker-compose.yml config -q

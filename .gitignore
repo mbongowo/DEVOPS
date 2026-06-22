@@ -1,0 +1,18 @@
+# Top-level ignores; each project also has its own .gitignore.
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Java build output (petclinic)
+**/target/
+
+# Terraform local state / plugins
+**/.terraform/
+*.tfstate
+*.tfstate.*
+
+# Local scratch
+*.local.yml
+*.local.yaml

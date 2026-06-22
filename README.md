@@ -1,0 +1,66 @@
+# DEVOPS
+
+A monorepo of hands-on DevOps projects, each self-contained in its own
+directory and validated by its own CI pipeline. Together they walk an
+application from source to a monitored, GitOps-managed deployment.
+
+## Projects
+
+| # | Project | What it demonstrates | CI |
+|---|---------|----------------------|----|
+| 1 | [`cicd-pipeline-petclinic`](./cicd-pipeline-petclinic) | Multi-stage Docker build of Spring PetClinic; GitHub Actions build/test → GHCR publish → gated production deploy | ![petclinic](../../actions/workflows/petclinic.yml/badge.svg) |
+| 2 | [`terraform-azure-infra`](./terraform-azure-infra) | Modular, free-tier Azure infra (resource group, VNet/NSG, F1 Linux web app) with provider pinning and input validation | ![terraform](../../actions/workflows/terraform.yml/badge.svg) |
+| 3 | [`k8s-online-boutique-helm`](./k8s-online-boutique-helm) | Data-driven Helm chart rendering 11 microservices + Redis from a single values map; hardened pods, gRPC/HTTP/TCP probes | ![helm](../../actions/workflows/helm.yml/badge.svg) |
+| 4 | [`gitops-argocd`](./gitops-argocd) | Argo CD App-of-Apps, AppProject guardrails, and an ApplicationSet generating per-environment apps; kustomize overlays | ![gitops](../../actions/workflows/gitops.yml/badge.svg) |
+| 5 | [`observability-stack`](./observability-stack) | Prometheus + Alertmanager + Grafana via docker-compose, with recording/alerting rules unit-tested by `promtool` | ![observability](../../actions/workflows/observability.yml/badge.svg) |
+
+They also connect end-to-end: the Helm chart (3) deploys the Online Boutique
+app, GitOps (4) reconciles that chart into the cluster across environments, and
+the observability stack (5) monitors it.
+
+## Repository layout
+
+```
+.
+├── .github/workflows/      one workflow per project, path-filtered
+│   ├── petclinic.yml        triggers on cicd-pipeline-petclinic/**
+│   ├── terraform.yml        triggers on terraform-azure-infra/**
+│   ├── helm.yml             triggers on k8s-online-boutique-helm/**
+│   ├── gitops.yml           triggers on gitops-argocd/**
+│   └── observability.yml    triggers on observability-stack/**
+├── cicd-pipeline-petclinic/
+├── terraform-azure-infra/
+├── k8s-online-boutique-helm/
+├── gitops-argocd/
+└── observability-stack/
+```
+
+Each workflow uses `paths:` filters and a `working-directory`, so a change to
+one project only runs that project's pipeline.
+
+## How CI is wired in a monorepo
+
+GitHub Actions only executes workflows under the **repository-root**
+`.github/workflows/`. Each project therefore has its workflow at the root,
+scoped to its own directory with a `paths:` filter — editing the Terraform
+project won't trigger the Helm pipeline, and vice versa.
+
+## Local validation
+
+Every project documents how to validate it locally in its own README. The same
+commands run in CI. In short:
+
+| Project | Local check |
+|---------|-------------|
+| petclinic | `./mvnw verify` |
+| terraform | `terraform fmt -check && terraform init -backend=false && terraform validate` |
+| helm | `helm lint . && helm template ob . \| kubeconform -strict -` |
+| gitops | `kustomize build <overlay> \| kubeconform -strict -` + Argo CRD validation |
+| observability | `promtool check config/rules`, `promtool test rules`, `amtool check-config` |
+
+## Licensing
+
+This repository is [MIT](./LICENSE) licensed, **except** the derivative
+`cicd-pipeline-petclinic`, which retains the upstream Spring PetClinic
+[Apache-2.0](./cicd-pipeline-petclinic/LICENSE.txt) license. Each project also
+carries its own `LICENSE`.

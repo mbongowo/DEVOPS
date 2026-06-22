@@ -1,0 +1,76 @@
+name: Helm
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "k8s-online-boutique-helm/**"
+      - ".github/workflows/helm.yml"
+  pull_request:
+    paths:
+      - "k8s-online-boutique-helm/**"
+      - ".github/workflows/helm.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: k8s-online-boutique-helm
+
+jobs:
+  lint-and-validate:
+    name: lint, template & schema-validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      - name: Helm lint
+        run: helm lint .
+
+      - name: Install kubeconform
+        run: |
+          curl -sSLo kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Render & validate (default values)
+        run: |
+          helm template ob . \
+            | kubeconform -strict -summary -kubernetes-version 1.30.0 -
+
+      - name: Render & validate (dev overlay)
+        run: |
+          helm template ob . -f values-dev.yaml \
+            | kubeconform -strict -summary -kubernetes-version 1.30.0 -
+
+  install-on-kind:
+    name: install on kind (smoke)
+    runs-on: ubuntu-latest
+    needs: lint-and-validate
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: ob
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      # Validates that the chart is installable and templates resolve against a
+      # real API server. Images aren't pulled (--dry-run=server), so this stays
+      # fast and doesn't need to wait for 11 services to become ready.
+      - name: helm install --dry-run=server
+        run: helm install ob . -f values-dev.yaml --dry-run=server
