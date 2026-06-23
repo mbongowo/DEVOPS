@@ -1,0 +1,81 @@
+<!doctype html>
+<!--
+  GitHub social-preview banner (1280x640) for this repo.
+  Render to PNG: serve this folder and screenshot at a 1280x640 viewport, e.g.
+    python -m http.server 8753
+    # open http://localhost:8753/social-banner.html in a 1280x640 browser viewport and capture
+  Then upload the PNG at: repo - Settings - General - Social preview.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1280px;height:640px;overflow:hidden}
+  .b{
+    width:1280px;height:640px;position:relative;
+    background:
+      radial-gradient(1100px 700px at 84% 26%, rgba(59,130,246,.16), transparent 60%),
+      linear-gradient(135deg,#1E293B 0%,#172033 45%,#0F172A 100%);
+    font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:#fff;
+  }
+  .grid{
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+    background-size:42px 42px;
+    -webkit-mask:linear-gradient(90deg,transparent 40%,#000 95%);
+            mask:linear-gradient(90deg,transparent 40%,#000 95%);
+  }
+  .motif{position:absolute;right:0;top:50%;transform:translateY(-50%);opacity:.34}
+  .wrap{position:absolute;left:96px;top:50%;transform:translateY(-50%)}
+  .eyebrow{font-size:17px;letter-spacing:5px;color:#7dd3fc;font-weight:600;text-transform:uppercase;margin-bottom:20px}
+  .name{font-size:98px;font-weight:800;line-height:.95;letter-spacing:-2px}
+  .bar{width:104px;height:7px;border-radius:4px;background:linear-gradient(90deg,#3B82F6,#6366F1);margin:24px 0 22px;box-shadow:0 0 26px rgba(59,130,246,.7)}
+  .role{font-size:35px;font-weight:600;color:#e7eefb;margin-bottom:26px}
+  .stat{font-size:22px;color:#d6e2f5;font-weight:500;margin-bottom:9px}
+  .tech{font-size:19px;color:#93acce;font-weight:500}
+  .handle{position:absolute;right:48px;bottom:34px;font-size:18px;color:#8ab4f8;font-weight:600;letter-spacing:.3px}
+</style>
+</head>
+<body>
+  <div class="b">
+    <div class="grid"></div>
+    <svg class="motif" width="620" height="640" viewBox="0 0 620 640">
+      <g fill="none" stroke="#3B82F6" stroke-width="1.6" stroke-linecap="round">
+        <path d="M70 150 H250 L300 200 H470 L520 150 H600"/>
+        <path d="M70 250 H190 L240 300 H560"/>
+        <path d="M120 360 H360 L410 320 H600"/>
+        <path d="M70 450 H300 L350 410 H470 L520 460 H600"/>
+        <path d="M200 500 V410"/>
+        <path d="M360 540 V470"/>
+        <path d="M470 200 V300"/>
+      </g>
+      <g fill="#60A5FA">
+        <circle cx="250" cy="150" r="5"/>
+        <circle cx="470" cy="200" r="5"/>
+        <circle cx="240" cy="300" r="5"/>
+        <circle cx="410" cy="320" r="5"/>
+        <circle cx="300" cy="410" r="5"/>
+        <circle cx="520" cy="460" r="5"/>
+        <circle cx="200" cy="500" r="5"/>
+        <circle cx="360" cy="540" r="5"/>
+      </g>
+      <g fill="none" stroke="#6366F1" stroke-width="1.4">
+        <rect x="430" y="350" width="60" height="60" rx="8"/>
+        <rect x="150" y="190" width="44" height="44" rx="7"/>
+      </g>
+    </svg>
+    <div class="wrap">
+      <div class="eyebrow">CI/CD &middot; GitOps &middot; Observability</div>
+      <div class="name">Joseph Mbuh</div>
+      <div class="bar"></div>
+      <div class="role">DevOps Portfolio</div>
+      <div class="stat">8 projects &nbsp;&middot;&nbsp; path-filtered CI on each</div>
+      <div class="tech">CI/CD &middot; Terraform &middot; Helm &middot; Argo CD &middot; Prometheus / Grafana</div>
+    </div>
+    <div class="handle">github.com/mbongowo</div>
+  </div>
+</body>
+</html>
