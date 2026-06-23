@@ -1,0 +1,49 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: "{{ webserver_package }}"
+    state: present
+    update_cache: true
+
+- name: Ensure the document root exists
+  ansible.builtin.file:
+    path: "{{ webserver_docroot }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Deploy the landing page
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "{{ webserver_docroot }}/index.html"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Configure the nginx site
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/provisioned.conf
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable the nginx site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/provisioned.conf
+    dest: /etc/nginx/sites-enabled/provisioned.conf
+    state: link
+  notify: Reload nginx
+
+- name: Disable the default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Ensure nginx is running and enabled
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

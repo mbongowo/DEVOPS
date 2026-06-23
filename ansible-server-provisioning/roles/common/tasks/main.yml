@@ -1,0 +1,57 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Set system timezone
+  community.general.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Ensure a primary group exists for the admin user
+  ansible.builtin.group:
+    name: "{{ admin_user }}"
+    state: present
+
+- name: Create the admin user
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    groups: sudo
+    append: true
+    shell: "{{ admin_user_shell }}"
+    create_home: true
+
+- name: Grant passwordless sudo to the admin user
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-{{ admin_user }}"
+    content: "{{ admin_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"
+
+- name: Ensure the SSH privilege-separation directory exists
+  ansible.builtin.file:
+    path: /run/sshd
+    state: directory
+    mode: "0755"
+
+- name: Harden the SSH server configuration
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+    validate: "sshd -t -f %s"
+  loop:
+    - regexp: '^#?PermitRootLogin'
+      line: "PermitRootLogin {{ common_ssh_permit_root_login }}"
+    - regexp: '^#?PasswordAuthentication'
+      line: "PasswordAuthentication {{ common_ssh_password_authentication }}"
+  notify: Restart ssh

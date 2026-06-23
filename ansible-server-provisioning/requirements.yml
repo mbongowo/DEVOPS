@@ -1,0 +1,9 @@
+---
+collections:
+  # Pinned to releases compatible with ansible-core 2.17.
+  - name: community.general
+    version: ">=10.0.0,<11.0.0"
+  - name: ansible.posix
+    version: ">=1.5.0"
+  - name: community.docker
+    version: ">=3.10.0,<5.0.0"

@@ -1,0 +1,8 @@
+# Python venv used for local validation
+.venv/
+.cache/
+
+# Ansible
+*.retry
+collections/
+__pycache__/

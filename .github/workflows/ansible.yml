@@ -1,0 +1,72 @@
+name: Ansible
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "ansible-server-provisioning/**"
+      - ".github/workflows/ansible.yml"
+  pull_request:
+    paths:
+      - "ansible-server-provisioning/**"
+      - ".github/workflows/ansible.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: ansible-server-provisioning
+
+jobs:
+  lint:
+    name: yamllint + ansible-lint + syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tooling
+        run: pip install "ansible-core>=2.16,<2.18" ansible-lint yamllint
+
+      - name: Install collections
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: yamllint
+        run: yamllint .
+
+      - name: ansible-lint
+        run: ansible-lint
+
+      - name: Syntax check
+        run: ansible-playbook --syntax-check -i inventory/hosts.ini site.yml
+
+  molecule:
+    name: molecule (converge + idempotence + verify)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Molecule
+        run: pip install "ansible-core>=2.16,<2.18" "molecule>=6" "molecule-plugins[docker]" docker
+
+      - name: Install collections
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: Molecule test
+        run: molecule test
+        env:
+          ANSIBLE_FORCE_COLOR: "1"
+          PY_COLORS: "1"

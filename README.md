@@ -14,6 +14,7 @@ application from source to a monitored, GitOps-managed deployment.
 | 4 | [`gitops-argocd`](./gitops-argocd) | Argo CD App-of-Apps, AppProject guardrails, and an ApplicationSet generating per-environment apps; kustomize overlays | ![gitops](../../actions/workflows/gitops.yml/badge.svg) |
 | 5 | [`observability-stack`](./observability-stack) | Prometheus + Alertmanager + Grafana via docker-compose, with recording/alerting rules unit-tested by `promtool` | ![observability](../../actions/workflows/observability.yml/badge.svg) |
 | 6 | [`docker-compose-voting-app`](./docker-compose-voting-app) | Five-service voting app (Flask/Redis/worker/Postgres/Node) orchestrated with Compose: healthchecks, `depends_on` conditions, dual networks, named volume, profiles; CI runs a live end-to-end smoke test | ![voting](../../actions/workflows/voting.yml/badge.svg) |
+| 7 | [`ansible-server-provisioning`](./ansible-server-provisioning) | Idempotent server provisioning with Ansible roles (hardened base, Docker, nginx, ufw); tested with Molecule (converge + idempotence + verify) against a systemd container | ![ansible](../../actions/workflows/ansible.yml/badge.svg) |
 
 They also connect end-to-end: the Helm chart (3) deploys the Online Boutique
 app, GitOps (4) reconciles that chart into the cluster across environments, and
@@ -29,7 +30,8 @@ the observability stack (5) monitors it.
 │   ├── helm.yml             triggers on k8s-online-boutique-helm/**
 │   ├── gitops.yml           triggers on gitops-argocd/**
 │   ├── observability.yml    triggers on observability-stack/**
-│   └── voting.yml           triggers on docker-compose-voting-app/**
+│   ├── voting.yml           triggers on docker-compose-voting-app/**
+│   └── ansible.yml          triggers on ansible-server-provisioning/**
 ├── cicd-pipeline-petclinic/
 ├── terraform-azure-infra/
 ├── k8s-online-boutique-helm/
@@ -61,6 +63,7 @@ commands run in CI. In short:
 | gitops | `kustomize build <overlay> \| kubeconform -strict -` + Argo CRD validation |
 | observability | `promtool check config/rules`, `promtool test rules`, `amtool check-config` |
 | voting | `docker compose config -q` (+ `docker compose up --build` for a live smoke test) |
+| ansible | `yamllint . && ansible-lint && ansible-playbook --syntax-check site.yml` (+ `molecule test`) |
 
 ## Licensing
 

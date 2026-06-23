@@ -1,0 +1,7 @@
+---
+# Disabled under Molecule (ufw/netfilter is not testable in a container).
+firewall_manage: true
+firewall_allowed_tcp_ports:
+  - 22
+  - 80
+  - 443

@@ -1,0 +1,29 @@
+---
+- name: Manage the host firewall
+  when: firewall_manage | bool
+  block:
+    - name: Install ufw
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Set the default incoming policy to deny
+      community.general.ufw:
+        direction: incoming
+        policy: deny
+
+    - name: Set the default outgoing policy to allow
+      community.general.ufw:
+        direction: outgoing
+        policy: allow
+
+    - name: Allow the configured TCP ports
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ firewall_allowed_tcp_ports }}"
+
+    - name: Enable ufw
+      community.general.ufw:
+        state: enabled

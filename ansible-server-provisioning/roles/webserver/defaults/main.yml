@@ -1,0 +1,5 @@
+---
+webserver_package: nginx
+webserver_server_name: _
+webserver_site_title: "Provisioned by Ansible"
+webserver_docroot: /var/www/provisioned

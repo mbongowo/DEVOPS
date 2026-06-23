@@ -1,0 +1,39 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  vars:
+    admin_user: deploy
+  tasks:
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: The admin user exists
+      ansible.builtin.command: "id {{ admin_user }}"
+      register: id_result
+      changed_when: false
+
+    - name: The admin user is in the sudo and docker groups
+      ansible.builtin.assert:
+        that:
+          - "'sudo' in id_result.stdout"
+          - "'docker' in id_result.stdout"
+        fail_msg: "admin user missing expected groups: {{ id_result.stdout }}"
+
+    - name: The Docker CLI is installed
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Nginx is running
+      ansible.builtin.assert:
+        that:
+          - "'nginx.service' in ansible_facts.services"
+          - "ansible_facts.services['nginx.service'].state == 'running'"
+
+    - name: The landing page is served over HTTP
+      ansible.builtin.uri:
+        url: http://localhost/
+        return_content: true
+      register: landing_page
+      failed_when: "'Provisioned by Ansible' not in landing_page.content"

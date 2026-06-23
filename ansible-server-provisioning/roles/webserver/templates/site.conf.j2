@@ -1,0 +1,12 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name {{ webserver_server_name }};
+
+    root {{ webserver_docroot }};
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

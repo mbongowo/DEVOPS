@@ -1,0 +1,13 @@
+---
+common_packages:
+  - vim
+  - curl
+  - git
+  - htop
+  - ca-certificates
+  - gnupg
+  - openssh-server
+  - tzdata
+common_timezone: UTC
+common_ssh_permit_root_login: "no"
+common_ssh_password_authentication: "no"

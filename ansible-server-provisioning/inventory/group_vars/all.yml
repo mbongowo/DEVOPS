@@ -1,0 +1,4 @@
+---
+# Cross-role settings (not scoped to a single role).
+admin_user: deploy
+admin_user_shell: /bin/bash
