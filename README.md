@@ -4,6 +4,19 @@ A monorepo of hands-on DevOps projects, each self-contained in its own
 directory and validated by its own CI pipeline. Together they walk an
 application from source to a monitored, GitOps-managed deployment.
 
+### Pipelines
+
+[![petclinic](https://github.com/mbongowo/DEVOPS/actions/workflows/petclinic.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/petclinic.yml)
+[![Terraform](https://github.com/mbongowo/DEVOPS/actions/workflows/terraform.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/terraform.yml)
+[![Helm](https://github.com/mbongowo/DEVOPS/actions/workflows/helm.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/helm.yml)
+[![GitOps](https://github.com/mbongowo/DEVOPS/actions/workflows/gitops.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/gitops.yml)
+[![Observability](https://github.com/mbongowo/DEVOPS/actions/workflows/observability.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/observability.yml)
+[![Voting App](https://github.com/mbongowo/DEVOPS/actions/workflows/voting.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/voting.yml)
+[![Ansible](https://github.com/mbongowo/DEVOPS/actions/workflows/ansible.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/ansible.yml)
+[![Custom Action](https://github.com/mbongowo/DEVOPS/actions/workflows/custom-action.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/custom-action.yml)
+
+All eight project pipelines build and validate independently on every push.
+
 ## Projects
 
 | # | Project | What it demonstrates | CI |
