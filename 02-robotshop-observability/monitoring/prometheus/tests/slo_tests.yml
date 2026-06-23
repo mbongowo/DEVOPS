@@ -1,0 +1,92 @@
+rule_files:
+  - ../rules/recording-rules.yml
+  - ../rules/slo-alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # 1. Healthy cart service: ~0% errors -> no availability alerts.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{service="cart", code="200"}'
+        values: '0+100x70'
+      - series: 'http_requests_total{service="cart", code="500"}'
+        values: '0+0x70'
+    alert_rule_test:
+      - eval_time: 65m
+        alertname: HighErrorRate
+        exp_alerts: []
+      - eval_time: 65m
+        alertname: ErrorBudgetBurnFast
+        exp_alerts: []
+
+  # 2. Injected fault: cart returns ~10% 5xx -> HighErrorRate + fast burn fire.
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{service="cart", code="200"}'
+        values: '0+90x80'
+      - series: 'http_requests_total{service="cart", code="500"}'
+        values: '0+10x80'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: HighErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              slo: availability
+              service: cart
+            exp_annotations:
+              summary: "High 5xx error rate for cart"
+              description: "cart 5xx error ratio has exceeded 5% for 5m."
+      - eval_time: 70m
+        alertname: ErrorBudgetBurnFast
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              slo: availability
+              burn: fast
+              service: cart
+            exp_annotations:
+              summary: "Fast error-budget burn on cart"
+              description: "cart is burning the 99.9% availability budget faster than 14.4x (1h and 5m)."
+
+  # 3. Latency SLO breach: cart p99 above 1s -> HighLatencyP99 fires.
+  - interval: 1m
+    input_series:
+      - series: 'http_request_duration_seconds_bucket{service="cart", le="0.5"}'
+        values: '0+0x15'
+      - series: 'http_request_duration_seconds_bucket{service="cart", le="1"}'
+        values: '0+0x15'
+      - series: 'http_request_duration_seconds_bucket{service="cart", le="2.5"}'
+        values: '0+100x15'
+      - series: 'http_request_duration_seconds_bucket{service="cart", le="+Inf"}'
+        values: '0+100x15'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: HighLatencyP99
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              slo: latency
+              service: cart
+            exp_annotations:
+              summary: "p99 latency >1s for cart"
+              description: "cart p99 request latency has exceeded 1s for 10m."
+
+  # 4. ServiceDown: target up=0 for >2m.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="robot-shop", service="payment", instance="payment:8080"}'
+        values: '0x5'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ServiceDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              service: payment
+              instance: "payment:8080"
+              job: "robot-shop"
+            exp_annotations:
+              summary: "payment target is down"
+              description: "Prometheus target payment:8080 for payment has been down for >2m."

@@ -1,0 +1,83 @@
+name: Robot Shop Observability
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "02-robotshop-observability/**"
+      - ".github/workflows/robotshop.yml"
+  pull_request:
+    paths:
+      - "02-robotshop-observability/**"
+      - ".github/workflows/robotshop.yml"
+
+permissions:
+  contents: read
+
+env:
+  PROM_VERSION: "3.1.0"
+  AM_VERSION: "0.28.1"
+
+defaults:
+  run:
+    working-directory: 02-robotshop-observability
+
+jobs:
+  validate:
+    name: promtool + amtool + configs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install promtool + amtool
+        run: |
+          curl -sSLo prom.tgz "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz"
+          tar -xzf prom.tgz && sudo mv "prometheus-${PROM_VERSION}.linux-amd64/promtool" /usr/local/bin/
+          curl -sSLo am.tgz "https://github.com/prometheus/alertmanager/releases/download/v${AM_VERSION}/alertmanager-${AM_VERSION}.linux-amd64.tar.gz"
+          tar -xzf am.tgz && sudo mv "alertmanager-${AM_VERSION}.linux-amd64/amtool" /usr/local/bin/
+
+      - name: promtool check + test rules
+        run: |
+          cd monitoring/prometheus
+          promtool check rules rules/recording-rules.yml rules/slo-alerts.yml
+          promtool test rules tests/slo_tests.yml
+
+      - name: amtool check-config
+        run: amtool check-config monitoring/alertmanager/alertmanager.yaml
+
+      - name: Validate Grafana dashboards (JSON)
+        run: |
+          for f in monitoring/grafana/dashboards/*.json; do echo "jq $f"; jq empty "$f"; done
+
+      - name: Validate YAML configs
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 - <<'PY'
+          import glob, sys, yaml
+          files = (glob.glob("monitoring/**/*.yaml", recursive=True)
+                   + ["robot-shop/values.yaml"])
+          bad = 0
+          for f in files:
+              try:
+                  list(yaml.safe_load_all(open(f)))
+                  print("ok ", f)
+              except Exception as e:
+                  print("ERR", f, e); bad += 1
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: Render kube-prometheus-stack with our values
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update >/dev/null
+          helm template kps prometheus-community/kube-prometheus-stack \
+            -f monitoring/kube-prometheus-stack.values.yaml >/dev/null
+          echo "kube-prometheus-stack values accepted"
+
+      - name: k6 script syntax
+        run: node --check load/k6-loadtest.js

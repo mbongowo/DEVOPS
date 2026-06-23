@@ -1,0 +1,31 @@
+# Values for the upstream Robot Shop Helm chart.
+# The chart lives in the instana/robot-shop repo (not a Helm registry), so:
+#   git clone https://github.com/instana/robot-shop
+#   helm install robot-shop ./robot-shop/K8s/helm -n robot-shop --create-namespace \
+#     -f values.yaml
+#
+# This file pins images and trims the app for a single-node kind cluster.
+
+image:
+  repo: robotshop
+  version: "2.1.0"        # pin the image tag for reproducibility
+  pullPolicy: IfNotPresent
+
+# No cloud load balancer on kind — reach the web UI via ingress/port-forward.
+nodeport: false
+loadbalancer: false
+
+# Instana agent off; this project uses OpenTelemetry + Prometheus instead.
+instana:
+  enabled: false
+
+# Emit OTLP traces to the OpenTelemetry Collector deployed alongside.
+opentelemetry:
+  enabled: true
+  endpoint: "otel-collector.monitoring:4317"
+
+# Modest requests so the full app schedules on one kind node.
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi

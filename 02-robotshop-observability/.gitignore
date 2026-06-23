@@ -1,0 +1,6 @@
+# Cloned upstream app (deploy-time only)
+robot-shop/robot-shop/
+# Secrets
+*-secret.yaml
+slack-url
+.env

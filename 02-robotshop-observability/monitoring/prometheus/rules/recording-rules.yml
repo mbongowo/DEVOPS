@@ -1,0 +1,22 @@
+groups:
+  - name: robotshop-recordings
+    interval: 30s
+    rules:
+      # Golden-signal recordings per service, driven by the app's HTTP metrics
+      # (exposed via OpenTelemetry / Prometheus instrumentation).
+      - record: service:http_requests:rate5m
+        expr: sum by (service) (rate(http_requests_total[5m]))
+
+      - record: service:http_errors:rate5m
+        expr: sum by (service) (rate(http_requests_total{code=~"5.."}[5m]))
+
+      - record: service:http_error_ratio:rate5m
+        expr: |
+          sum by (service) (rate(http_requests_total{code=~"5.."}[5m]))
+          /
+          sum by (service) (rate(http_requests_total[5m]))
+
+      - record: service:request_duration:p99_5m
+        expr: |
+          histogram_quantile(0.99,
+            sum by (service, le) (rate(http_request_duration_seconds_bucket[5m])))

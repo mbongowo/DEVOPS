@@ -1,0 +1,58 @@
+groups:
+  - name: robotshop-slo-alerts
+    rules:
+      # --- Availability SLO: 99.9% (error budget 0.1%) ---
+      - alert: ServiceDown
+        expr: up{job="robot-shop"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }} target is down"
+          description: "Prometheus target {{ $labels.instance }} for {{ $labels.service }} has been down for >2m."
+
+      - alert: HighErrorRate
+        expr: |
+          sum by (service) (rate(http_requests_total{code=~"5.."}[5m]))
+          / sum by (service) (rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          slo: availability
+        annotations:
+          summary: "High 5xx error rate for {{ $labels.service }}"
+          description: "{{ $labels.service }} 5xx error ratio has exceeded 5% for 5m."
+
+      - alert: ErrorBudgetBurnFast
+        # Fast burn: >14.4x the 99.9% budget, confirmed over both 1h and 5m windows.
+        expr: |
+          (
+            sum by (service) (rate(http_requests_total{code=~"5.."}[1h]))
+            / sum by (service) (rate(http_requests_total[1h]))
+          ) > (14.4 * 0.001)
+          and
+          (
+            sum by (service) (rate(http_requests_total{code=~"5.."}[5m]))
+            / sum by (service) (rate(http_requests_total[5m]))
+          ) > (14.4 * 0.001)
+        for: 2m
+        labels:
+          severity: critical
+          slo: availability
+          burn: fast
+        annotations:
+          summary: "Fast error-budget burn on {{ $labels.service }}"
+          description: "{{ $labels.service }} is burning the 99.9% availability budget faster than 14.4x (1h and 5m)."
+
+      # --- Latency SLO ---
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum by (service, le) (rate(http_request_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: "p99 latency >1s for {{ $labels.service }}"
+          description: "{{ $labels.service }} p99 request latency has exceeded 1s for 10m."

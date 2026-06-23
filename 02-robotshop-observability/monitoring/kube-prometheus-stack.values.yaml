@@ -1,0 +1,46 @@
+# Values for the prometheus-community/kube-prometheus-stack chart.
+# Install:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm install kps prometheus-community/kube-prometheus-stack \
+#     -n monitoring --create-namespace -f kube-prometheus-stack.values.yaml
+
+fullnameOverride: kps
+
+grafana:
+  defaultDashboardsEnabled: true
+  # The dashboard sidecar imports any ConfigMap labelled grafana_dashboard=1,
+  # so the JSON in grafana/dashboards/ can be applied as ConfigMaps.
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    # Discover PrometheusRule + ServiceMonitor objects regardless of release label.
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+# Trim components that aren't needed on a single-node kind cluster.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false

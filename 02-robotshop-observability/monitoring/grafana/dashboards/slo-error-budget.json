@@ -1,0 +1,57 @@
+{
+  "title": "Robot Shop — SLO & Error Budget",
+  "uid": "robotshop-slo",
+  "schemaVersion": 39,
+  "editable": true,
+  "tags": ["robot-shop", "slo"],
+  "time": { "from": "now-30d", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Availability SLO target",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 99, "max": 100 } },
+      "targets": [{ "expr": "99.9", "legendFormat": "target" }]
+    },
+    {
+      "id": 2,
+      "title": "30d availability (cart)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "targets": [
+        {
+          "expr": "1 - (sum(rate(http_requests_total{service=\"cart\",code=~\"5..\"}[30d])) / sum(rate(http_requests_total{service=\"cart\"}[30d])))",
+          "legendFormat": "availability"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Error-budget burn rate (1h)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "(sum by (service) (rate(http_requests_total{code=~\"5..\"}[1h])) / sum by (service) (rate(http_requests_total[1h]))) / 0.001",
+          "legendFormat": "{{service}} burn x"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Remaining error budget (30d, cart)",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } },
+      "targets": [
+        {
+          "expr": "1 - ((sum(increase(http_requests_total{service=\"cart\",code=~\"5..\"}[30d])) / sum(increase(http_requests_total{service=\"cart\"}[30d]))) / 0.001)",
+          "legendFormat": "budget remaining"
+        }
+      ]
+    }
+  ]
+}
