@@ -1,0 +1,4 @@
+node_modules/
+coverage/
+*.log
+# NOTE: dist/ is intentionally committed — it is the action's runtime bundle.

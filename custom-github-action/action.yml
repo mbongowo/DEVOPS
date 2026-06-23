@@ -1,0 +1,31 @@
+name: 'Semantic Version Bump'
+description: 'Compute the next semantic version from a base version and a release type (major/minor/patch/prerelease).'
+author: 'mbongowo'
+
+branding:
+  icon: 'arrow-up-circle'
+  color: 'blue'
+
+inputs:
+  version:
+    description: 'The current semantic version, e.g. 1.4.2'
+    required: true
+  release-type:
+    description: 'One of: major, minor, patch, prerelease'
+    required: true
+  preid:
+    description: 'Prerelease identifier used for prerelease bumps (e.g. rc, beta)'
+    required: false
+    default: 'rc'
+
+outputs:
+  previous-version:
+    description: 'The input version, echoed back'
+  next-version:
+    description: 'The computed next version'
+  next-tag:
+    description: 'The next version prefixed with "v" (e.g. v1.5.0)'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

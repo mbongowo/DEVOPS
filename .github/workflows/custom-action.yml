@@ -1,0 +1,88 @@
+name: Custom Action
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "custom-github-action/**"
+      - ".github/workflows/custom-action.yml"
+  pull_request:
+    paths:
+      - "custom-github-action/**"
+      - ".github/workflows/custom-action.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: typecheck + test + bundle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: custom-github-action
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: custom-github-action/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build bundle
+        run: npm run build
+
+      - name: Verify dist/ is up to date
+        run: |
+          if [ -n "$(git status --porcelain -- dist)" ]; then
+            echo "::error::dist/ is out of date — run 'npm run build' and commit the result."
+            git --no-pager diff -- dist
+            exit 1
+          fi
+          echo "dist/ matches source ✓"
+
+  self-test:
+    name: run the action on itself
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Bump (minor)
+        id: minor
+        uses: ./custom-github-action
+        with:
+          version: "1.4.2"
+          release-type: minor
+
+      - name: Bump (prerelease, beta)
+        id: pre
+        uses: ./custom-github-action
+        with:
+          version: "1.5.0"
+          release-type: prerelease
+          preid: beta
+
+      - name: Assert outputs
+        run: |
+          set -e
+          echo "minor    -> ${{ steps.minor.outputs.next-version }} / ${{ steps.minor.outputs.next-tag }}"
+          echo "prerelease -> ${{ steps.pre.outputs.next-version }}"
+          test "${{ steps.minor.outputs.next-version }}" = "1.5.0"
+          test "${{ steps.minor.outputs.next-tag }}"     = "v1.5.0"
+          test "${{ steps.pre.outputs.next-version }}"    = "1.5.1-beta.0"
+          echo "✅ action outputs verified end-to-end"
