@@ -1,0 +1,6 @@
+*-report.json
+__pycache__/
+*.pyc
+.terraform/
+*.tfstate*
+dependency-check-report.*

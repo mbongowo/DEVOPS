@@ -1,0 +1,25 @@
+title = "DEVOPS repo gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented example placeholders and non-secret defaults"
+paths = [
+  '''.*\.example$''',
+  '''.*\.env\.example$''',
+  '''.*README\.md$''',
+  '''(.*/)?node_modules/.*''',
+  '''(.*/)?dist/.*''',
+  '''(.*/)?\.venv.*/.*''',
+  '''(.*/)?\.terraform/.*''',
+]
+regexes = [
+  '''fake_password''',
+  '''REPLACE-ME''',
+  '''REPLACE-ME-tf(state|lock)''',
+  '''your-dockerhub-(username|token|access-token)''',
+  '''POSTGRES_PASSWORD=postgres''',
+  '''MYSQL_ROOT_PASSWORD''',
+  '''password.{0,5}fake''',
+]
