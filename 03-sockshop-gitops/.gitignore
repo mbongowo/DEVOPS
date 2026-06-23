@@ -1,0 +1,3 @@
+# Rendered kustomize output / local scratch
+*.rendered.yaml
+.env

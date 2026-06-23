@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: sock-shop-dev
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
+
+# Dev: single replicas everywhere (cheap, fast feedback).
+patches:
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1

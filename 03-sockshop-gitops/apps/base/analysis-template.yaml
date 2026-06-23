@@ -1,0 +1,23 @@
+# Canary gate: the rollout proceeds only while the HTTP success rate stays >=95%.
+# Three consecutive failures abort the rollout, which Argo Rollouts then
+# automatically reverts to the previous stable ReplicaSet.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+spec:
+  args:
+    - name: service
+  metrics:
+    - name: success-rate
+      interval: 30s
+      count: 3
+      successCondition: result >= 0.95
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://kps-prometheus.monitoring:9090
+          query: |
+            sum(rate(http_requests_total{service="{{args.service}}",code=~"2.."}[1m]))
+            /
+            sum(rate(http_requests_total{service="{{args.service}}"}[1m]))

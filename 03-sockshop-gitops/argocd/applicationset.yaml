@@ -1,0 +1,34 @@
+# One ApplicationSet generates an Argo CD Application per environment, each
+# pointing at its kustomize overlay. Git is the source of truth; auto-sync +
+# self-heal correct any drift.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: sock-shop
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - env: dev
+          - env: prod
+  template:
+    metadata:
+      name: "sock-shop-{{.env}}"
+    spec:
+      project: sock-shop
+      source:
+        repoURL: https://github.com/mbongowo/DEVOPS.git
+        targetRevision: main
+        path: "03-sockshop-gitops/apps/overlays/{{.env}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "sock-shop-{{.env}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

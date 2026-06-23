@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - front-end.yaml
+  - analysis-template.yaml
+  - catalogue.yaml
+  - carts.yaml
+  - user.yaml
+  - orders.yaml
+  - workers.yaml
+
+# includeSelectors:false so the label is added for grouping without rewriting
+# the Rollout/Deployment selectors.
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: sock-shop
+    includeSelectors: false

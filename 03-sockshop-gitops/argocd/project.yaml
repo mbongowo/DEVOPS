@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: sock-shop
+  namespace: argocd
+spec:
+  description: Sock Shop GitOps delivery (dev + prod)
+  sourceRepos:
+    - https://github.com/mbongowo/DEVOPS.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: sock-shop-dev
+    - server: https://kubernetes.default.svc
+      namespace: sock-shop-prod
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
