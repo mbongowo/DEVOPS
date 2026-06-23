@@ -1,0 +1,22 @@
+# GitOps: Argo CD renders the Helm chart from this repo and keeps the cluster in
+# sync. Image tags are bumped by CI (commit to values) to trigger a sync.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: three-tier
+  namespace: argocd
+spec:
+  project: three-tier
+  source:
+    repoURL: https://github.com/mbongowo/DEVOPS.git
+    targetRevision: main
+    path: 01-three-tier-devsecops-eks/helm
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: three-tier
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

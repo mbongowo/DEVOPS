@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: three-tier
+  namespace: argocd
+spec:
+  description: Three-tier DevSecOps app
+  sourceRepos:
+    - https://github.com/mbongowo/DEVOPS.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: three-tier
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

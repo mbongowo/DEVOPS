@@ -1,0 +1,41 @@
+{
+  "title": "Three-Tier — API",
+  "uid": "three-tier-api",
+  "schemaVersion": 39,
+  "editable": true,
+  "tags": ["three-tier"],
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "title": "API request rate by code",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum by (code) (rate(api_http_requests_total[5m]))", "legendFormat": "{{code}}" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "API error rate (4xx/5xx)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "targets": [
+        {
+          "expr": "sum(rate(api_http_requests_total{code=~\"[45]..\"}[5m])) / sum(rate(api_http_requests_total[5m]))",
+          "legendFormat": "error ratio"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Process resident memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [{ "expr": "process_resident_memory_bytes", "legendFormat": "rss" }]
+    }
+  ]
+}
