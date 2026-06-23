@@ -1,0 +1,115 @@
+name: Flask CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "05-flask-cicd-terraform/**"
+      - ".github/workflows/flask.yml"
+  pull_request:
+    paths:
+      - "05-flask-cicd-terraform/**"
+      - ".github/workflows/flask.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: 05-flask-cicd-terraform
+
+jobs:
+  test:
+    name: lint + pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -r app/requirements-dev.txt
+      - name: flake8
+        run: cd app && flake8 app.py
+      - name: pytest
+        run: pytest -q
+
+  image:
+    name: docker build + container smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t flask-urlshortener:ci app
+      - name: Run container
+        run: docker run -d --name app -p 8000:8000 flask-urlshortener:ci
+      - name: Smoke test endpoints
+        run: |
+          for i in $(seq 1 15); do curl -fsS localhost:8000/healthz && break || sleep 2; done
+          code=$(curl -fsS -X POST -H 'content-type: application/json' \
+            -d '{"url":"https://example.com/x"}' localhost:8000/api/shorten | python3 -c 'import sys,json;print(json.load(sys.stdin)["code"])')
+          echo "got code: $code"
+          loc=$(curl -s -o /dev/null -w '%{redirect_url}' "localhost:8000/$code")
+          test "$loc" = "https://example.com/x"
+          curl -fsS localhost:8000/metrics | grep -q urlshort_shorten_total
+          echo "container smoke OK"
+      - name: Logs on failure
+        if: failure()
+        run: docker logs app || true
+
+  iac:
+    name: terraform + helm validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: terraform fmt + validate
+        run: |
+          cd terraform
+          terraform fmt -check
+          terraform init -backend=false
+          terraform validate
+      - name: helm lint
+        run: helm lint chart
+      - name: Render + kubeconform
+        run: |
+          curl -sSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz kubeconform
+          helm template us chart --set ingress.enabled=true | ./kubeconform -strict -ignore-missing-schemas -kubernetes-version 1.31.0 -
+
+  deploy-smoke:
+    name: kind deploy + smoke
+    needs: [test, image, iac]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: smoke
+          node_image: kindest/node:v1.31.2
+      - name: Build + load image
+        run: |
+          docker build -t flask-urlshortener:ci app
+          kind load docker-image flask-urlshortener:ci --name smoke
+      - name: Helm install
+        run: |
+          helm install us chart \
+            --set image.repository=flask-urlshortener --set image.tag=ci \
+            --set ingress.enabled=false --wait --timeout 150s
+      - name: Smoke test in-cluster
+        run: |
+          kubectl rollout status deploy/us-urlshortener --timeout=120s
+          kubectl port-forward svc/us-urlshortener 8000:80 >/dev/null 2>&1 &
+          sleep 5
+          curl -fsS localhost:8000/healthz
+          curl -fsS -X POST -H 'content-type: application/json' \
+            -d '{"url":"https://example.org"}' localhost:8000/api/shorten
+          curl -fsS localhost:8000/metrics | grep -q urlshort_shorten_total
+          echo "✅ deployed app healthy in kind"
+      - name: Describe on failure
+        if: failure()
+        run: kubectl get pods -A && kubectl describe deploy/us-urlshortener || true

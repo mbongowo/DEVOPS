@@ -1,0 +1,74 @@
+// Declarative Jenkins pipeline — the "classic" CI path for this project.
+// The repository's primary, always-green pipeline is the GitHub Actions workflow
+// at .github/workflows/flask.yml; this Jenkinsfile mirrors it for a Jenkins setup
+// (run Jenkins locally via Docker — see the README).
+pipeline {
+  agent any
+
+  environment {
+    IMAGE        = "docker.io/${DOCKERHUB_USER}/flask-urlshortener"
+    IMAGE_TAG    = "${env.GIT_COMMIT?.take(7) ?: 'local'}"
+    APP_DIR      = '05-flask-cicd-terraform/app'
+  }
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+
+    stage('Install & Test') {
+      steps {
+        dir("${APP_DIR}") {
+          sh '''
+            python3 -m venv .venv
+            . .venv/bin/activate
+            pip install -r requirements-dev.txt
+            flake8 app.py
+            pytest -q
+          '''
+        }
+      }
+    }
+
+    stage('Build image') {
+      steps {
+        dir("${APP_DIR}") {
+          sh 'docker build -t $IMAGE:$IMAGE_TAG .'
+        }
+      }
+    }
+
+    stage('Push to Docker Hub') {
+      when { branch 'main' }
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub',
+            usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+          sh '''
+            echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+            docker push $IMAGE:$IMAGE_TAG
+          '''
+        }
+      }
+    }
+
+    stage('Deploy (kubectl/helm)') {
+      when { branch 'main' }
+      steps {
+        sh '''
+          helm upgrade --install urlshortener 05-flask-cicd-terraform/chart \
+            --set image.repository=$IMAGE --set image.tag=$IMAGE_TAG \
+            --namespace urlshortener --create-namespace --wait
+        '''
+      }
+    }
+  }
+
+  post {
+    always { sh 'docker logout || true' }
+  }
+}

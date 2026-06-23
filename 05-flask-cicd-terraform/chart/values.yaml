@@ -1,0 +1,34 @@
+replicaCount: 1
+
+image:
+  repository: flask-urlshortener
+  tag: dev
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: urlshortener.localhost
+  path: /
+  pathType: Prefix
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+
+# Emit a Prometheus Operator ServiceMonitor (requires the CRD to be installed).
+serviceMonitor:
+  enabled: false
+  interval: 15s
+
+env:
+  CODE_LEN: "6"
