@@ -1,0 +1,32 @@
+---
+- name: Create the application config directory
+  ansible.builtin.file:
+    path: "/etc/{{ app_name }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0750"
+
+- name: Render the application environment file
+  ansible.builtin.template:
+    src: app.env.j2
+    dest: "/etc/{{ app_name }}/app.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0640"
+  notify: Restart application container
+
+- name: Run the application container
+  community.docker.docker_container:
+    name: "{{ app_name }}"
+    image: "{{ app_image }}"
+    state: started
+    restart_policy: unless-stopped
+    env_file: "/etc/{{ app_name }}/app.env"
+    published_ports:
+      - "{{ app_port }}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

@@ -1,0 +1,22 @@
+---
+- name: Install the Docker engine
+  ansible.builtin.dnf:
+    name: docker
+    state: present
+
+- name: Ensure Docker is running and enabled
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add the application user to the docker group
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    groups: docker
+    append: true
+
+- name: Install the Docker SDK for Python
+  ansible.builtin.pip:
+    name: docker
+    state: present

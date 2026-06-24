@@ -1,0 +1,62 @@
+name: AWS Platform (Terraform + Ansible)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "06-aws-platform-terraform-ansible/**"
+      - ".github/workflows/platform.yml"
+  pull_request:
+    paths:
+      - "06-aws-platform-terraform-ansible/**"
+      - ".github/workflows/platform.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: 06-aws-platform-terraform-ansible
+
+jobs:
+  terraform:
+    name: terraform validate + checkov
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: terraform fmt + validate
+        run: |
+          cd terraform
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+      - name: Checkov (IaC scan, informational)
+        run: |
+          pipx install checkov || pip install checkov
+          checkov -d terraform --soft-fail --quiet --compact
+
+  ansible:
+    name: yamllint + ansible-lint + syntax-check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 06-aws-platform-terraform-ansible/ansible
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the Ansible toolchain
+        run: pip install "ansible-core<2.18" ansible-lint yamllint
+      - name: Install required collections
+        run: ansible-galaxy collection install -r requirements.yml
+      - name: yamllint
+        run: yamllint .
+      - name: ansible-lint
+        run: ansible-lint
+      - name: Playbook syntax check
+        run: ansible-playbook -i inventory/hosts.ini.example site.yml --syntax-check

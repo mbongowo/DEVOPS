@@ -1,0 +1,17 @@
+---
+# Base configuration
+system_timezone: UTC
+app_user: appsvc
+
+# Application container
+app_name: platform-app
+app_image: nginxdemos/hello:plain-text
+app_port: 80
+app_environment: dev
+
+# Database connection — db_host is overridden per environment from the
+# Terraform `db_endpoint` output (inventory vars or --extra-vars).
+db_host: localhost
+db_port: 5432
+db_name: appdb
+db_user: appadmin

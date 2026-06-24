@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: mbongowo
+  description: Base configuration and host hardening for the app fleet
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+dependencies: []

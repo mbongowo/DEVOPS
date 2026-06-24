@@ -1,0 +1,9 @@
+---
+- name: Configure the application fleet
+  hosts: app
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker
+    - app

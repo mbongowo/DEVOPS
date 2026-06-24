@@ -1,0 +1,20 @@
+---
+# Dynamic inventory: discover the Terraform-provisioned app fleet by tag.
+# Requires `amazon.aws` and working AWS credentials (env vars / profile / role).
+plugin: amazon.aws.aws_ec2
+regions:
+  - us-east-1
+filters:
+  "tag:Project": aws-platform
+  instance-state-name: running
+# Group instances by their Role tag → the "app" group the playbook targets.
+keyed_groups:
+  - key: tags.Role
+    separator: ""
+  - key: tags.Environment
+    prefix: env
+# Reach private instances by private IP (over a bastion/SSM tunnel).
+hostnames:
+  - private-ip-address
+compose:
+  ansible_host: private_ip_address
