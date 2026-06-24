@@ -1,10 +1,20 @@
 # DEVOPS
 
 A monorepo of hands-on DevOps projects, each self-contained in its own
-directory and validated by its own CI pipeline. Together they walk an
-application from source to a monitored, GitOps-managed deployment.
+directory and validated by its own CI pipeline. It holds two collections:
 
-### Pipelines
+- **Foundations (8 projects)** — take an application from source to a
+  monitored, GitOps-managed deployment (CI/CD, Terraform, Helm, Argo CD,
+  observability, Compose, Ansible, a custom Action).
+- **AWS cloud-native & DevSecOps wave (7 projects, `01`–`07`)** — EKS, GitOps,
+  observability, shift-left security, and supply-chain hardening on AWS.
+  **Validate-only**: scaffolded and checked locally and in CI (`terraform
+  validate`, kind, kubeconform, policy tests) — never applied to live AWS, so
+  there is no cloud spend.
+
+Fifteen path-filtered pipelines build and validate independently on every push.
+
+## Foundations
 
 [![petclinic](https://github.com/mbongowo/DEVOPS/actions/workflows/petclinic.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/petclinic.yml)
 [![Terraform](https://github.com/mbongowo/DEVOPS/actions/workflows/terraform.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/terraform.yml)
@@ -14,10 +24,6 @@ application from source to a monitored, GitOps-managed deployment.
 [![Voting App](https://github.com/mbongowo/DEVOPS/actions/workflows/voting.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/voting.yml)
 [![Ansible](https://github.com/mbongowo/DEVOPS/actions/workflows/ansible.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/ansible.yml)
 [![Custom Action](https://github.com/mbongowo/DEVOPS/actions/workflows/custom-action.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/custom-action.yml)
-
-All eight project pipelines build and validate independently on every push.
-
-## Projects
 
 | # | Project | What it demonstrates | CI |
 |---|---------|----------------------|----|
@@ -30,31 +36,49 @@ All eight project pipelines build and validate independently on every push.
 | 7 | [`ansible-server-provisioning`](./ansible-server-provisioning) | Idempotent server provisioning with Ansible roles (hardened base, Docker, nginx, ufw); tested with Molecule (converge + idempotence + verify) against a systemd container | ![ansible](../../actions/workflows/ansible.yml/badge.svg) |
 | 8 | [`custom-github-action`](./custom-github-action) | Custom JavaScript GitHub Action (TypeScript + `ncc` bundle) that computes the next semantic version; Jest tests, a stale-bundle guard, and a CI job that runs the action on itself | ![custom-action](../../actions/workflows/custom-action.yml/badge.svg) |
 
-They also connect end-to-end: the Helm chart (3) deploys the Online Boutique
-app, GitOps (4) reconciles that chart into the cluster across environments, and
-the observability stack (5) monitors it.
+These connect end-to-end: the Helm chart (3) deploys the Online Boutique app,
+GitOps (4) reconciles that chart into the cluster across environments, and the
+observability stack (5) monitors it.
+
+## AWS cloud-native & DevSecOps wave
+
+[![Three-Tier DevSecOps](https://github.com/mbongowo/DEVOPS/actions/workflows/devsecops-eks.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/devsecops-eks.yml)
+[![Robot Shop Observability](https://github.com/mbongowo/DEVOPS/actions/workflows/robotshop.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/robotshop.yml)
+[![Sock Shop GitOps](https://github.com/mbongowo/DEVOPS/actions/workflows/sockshop.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/sockshop.yml)
+[![DevSecOps Pipeline](https://github.com/mbongowo/DEVOPS/actions/workflows/devsecops.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/devsecops.yml)
+[![Flask CI/CD](https://github.com/mbongowo/DEVOPS/actions/workflows/flask.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/flask.yml)
+[![AWS Platform](https://github.com/mbongowo/DEVOPS/actions/workflows/platform.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/platform.yml)
+[![Supply-Chain Security](https://github.com/mbongowo/DEVOPS/actions/workflows/supply-chain.yml/badge.svg)](https://github.com/mbongowo/DEVOPS/actions/workflows/supply-chain.yml)
+
+| # | Project | What it demonstrates | CI |
+|---|---------|----------------------|----|
+| 01 | [`01-three-tier-devsecops-eks`](./01-three-tier-devsecops-eks) | Flagship 3-tier app (React + Node/Express + MongoDB) for EKS: Terraform VPC/EKS/ECR, hardened Helm chart, Argo CD, and a CI pipeline with Trivy/Checkov gates | ![devsecops-eks](../../actions/workflows/devsecops-eks.yml/badge.svg) |
+| 02 | [`02-robotshop-observability`](./02-robotshop-observability) | Observability layer over Stan's Robot Shop: `promtool`-tested SLO burn-rate alerts (multi-window), recording rules, golden-signal + SLO Grafana dashboards, Alertmanager routing, OTel/Tempo/Loki | ![robotshop](../../actions/workflows/robotshop.yml/badge.svg) |
+| 03 | [`03-sockshop-gitops`](./03-sockshop-gitops) | Sock Shop delivered via GitOps: Kustomize base + dev/prod overlays, Argo CD ApplicationSet, and an Argo Rollouts canary with an analysis-driven auto-rollback | ![sockshop](../../actions/workflows/sockshop.yml/badge.svg) |
+| 04 | [`04-devsecops-cicd-pipeline`](./04-devsecops-cicd-pipeline) | Shift-left security pipeline with hard gates: Semgrep (SAST), gitleaks (secrets), Trivy (deps/image/IaC), Checkov — with report artifacts | ![devsecops](../../actions/workflows/devsecops.yml/badge.svg) |
+| 05 | [`05-flask-cicd-terraform`](./05-flask-cicd-terraform) | Flask URL-shortener with the full loop: pytest + Prometheus metrics, Helm chart, Terraform (kind provider), and a live kind deploy + smoke test in CI | ![flask](../../actions/workflows/flask.yml/badge.svg) |
+| 06 | [`06-aws-platform-terraform-ansible`](./06-aws-platform-terraform-ansible) | Provision-then-configure: Terraform builds the AWS foundation (VPC, EC2 fleet, RDS Postgres); Ansible configures the fleet via a tag-based dynamic inventory | ![platform](../../actions/workflows/platform.yml/badge.svg) |
+| 07 | [`07-supply-chain-security`](./07-supply-chain-security) | End-to-end supply chain: Syft SBOM → Grype scan → Cosign sign + SBOM attestation → verify (signed passes, unsigned rejected), with Kyverno admission policies | ![supply-chain](../../actions/workflows/supply-chain.yml/badge.svg) |
 
 ## Repository layout
 
 ```
 .
-├── .github/workflows/      one workflow per project, path-filtered
-│   ├── petclinic.yml        triggers on cicd-pipeline-petclinic/**
-│   ├── terraform.yml        triggers on terraform-azure-infra/**
-│   ├── helm.yml             triggers on k8s-online-boutique-helm/**
-│   ├── gitops.yml           triggers on gitops-argocd/**
-│   ├── observability.yml    triggers on observability-stack/**
-│   ├── voting.yml           triggers on docker-compose-voting-app/**
-│   ├── ansible.yml          triggers on ansible-server-provisioning/**
-│   └── custom-action.yml    triggers on custom-github-action/**
-├── cicd-pipeline-petclinic/
-├── terraform-azure-infra/
-├── k8s-online-boutique-helm/
-├── gitops-argocd/
-├── observability-stack/
-├── docker-compose-voting-app/
-├── ansible-server-provisioning/
-└── custom-github-action/
+├── .github/workflows/          one path-filtered workflow per project
+│   ├── petclinic.yml · terraform.yml · helm.yml · gitops.yml
+│   ├── observability.yml · voting.yml · ansible.yml · custom-action.yml
+│   └── devsecops-eks.yml · robotshop.yml · sockshop.yml · devsecops.yml
+│       · flask.yml · platform.yml · supply-chain.yml
+│
+├── cicd-pipeline-petclinic/    terraform-azure-infra/
+├── k8s-online-boutique-helm/   gitops-argocd/
+├── observability-stack/        docker-compose-voting-app/
+├── ansible-server-provisioning/ custom-github-action/
+│
+├── 01-three-tier-devsecops-eks/    02-robotshop-observability/
+├── 03-sockshop-gitops/             04-devsecops-cicd-pipeline/
+├── 05-flask-cicd-terraform/        06-aws-platform-terraform-ansible/
+└── 07-supply-chain-security/
 ```
 
 Each workflow uses `paths:` filters and a `working-directory`, so a change to
@@ -69,8 +93,8 @@ project won't trigger the Helm pipeline, and vice versa.
 
 ## Local validation
 
-Every project documents how to validate it locally in its own README. The same
-commands run in CI. In short:
+Every project documents how to validate it locally in its own README, and the
+same commands run in CI. A few representative checks:
 
 | Project | Local check |
 |---------|-------------|
@@ -82,6 +106,8 @@ commands run in CI. In short:
 | voting | `docker compose config -q` (+ `docker compose up --build` for a live smoke test) |
 | ansible | `yamllint . && ansible-lint && ansible-playbook --syntax-check site.yml` (+ `molecule test`) |
 | custom-action | `npm ci && npm run typecheck && npm test && npm run build` |
+| 06 platform | `terraform validate` + `ansible-lint` + playbook `--syntax-check` |
+| 07 supply-chain | `syft <img>` → `grype sbom:… --fail-on critical` + `kyverno test policy/tests` |
 
 ## Licensing
 
