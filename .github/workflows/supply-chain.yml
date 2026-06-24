@@ -57,9 +57,11 @@ jobs:
       IMAGE: localhost:5000/supply-chain-demo
     steps:
       - uses: actions/checkout@v4
-      - uses: sigstore/cosign-installer@v3
-        with:
-          cosign-release: v3.1.1
+      - name: Install Cosign
+        run: |
+          curl -sSLo /tmp/cosign https://github.com/sigstore/cosign/releases/download/v3.1.1/cosign-linux-amd64
+          sudo install -m 0755 /tmp/cosign /usr/local/bin/cosign
+          cosign version
       - name: Install Syft
         run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin" v1.45.1
       - name: Build + push to the local registry
