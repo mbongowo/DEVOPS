@@ -1,0 +1,12 @@
+# Local validation artifacts
+.scs-work/
+_scs_validate.sh
+
+# Cosign keys / signing material (never commit)
+cosign.key
+cosign.pub
+signing_config.json
+
+# Generated SBOMs
+sbom.*.json
+*.sbom.json

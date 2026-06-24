@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-latest
+spec:
+  containers:
+    - name: app
+      # Mutable ':latest' tag — rejected by disallow-latest-tag.
+      image: ghcr.io/mbongowo/devops/supply-chain-demo:latest
+      securityContext:
+        runAsNonRoot: true

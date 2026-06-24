@@ -1,0 +1,25 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow Latest Tag
+    policies.kyverno.io/description: >-
+      Require an explicit, immutable image tag. ':latest' is mutable and breaks
+      the digest-pinning that signature verification relies on.
+spec:
+  background: true
+  rules:
+    - name: require-explicit-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        failureAction: Enforce
+        message: "Images must use an explicit tag (':latest' is forbidden)."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"

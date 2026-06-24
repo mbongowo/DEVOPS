@@ -1,0 +1,119 @@
+name: Supply-Chain Security
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "07-supply-chain-security/**"
+      - ".github/workflows/supply-chain.yml"
+  pull_request:
+    paths:
+      - "07-supply-chain-security/**"
+      - ".github/workflows/supply-chain.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: 07-supply-chain-security
+
+jobs:
+  build-scan:
+    name: build + SBOM + scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t supply-chain-demo:ci --build-arg VERSION=ci app
+      - name: Install Syft
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin" v1.45.1
+      - name: Generate SBOM (SPDX + CycloneDX)
+        run: |
+          "$RUNNER_TEMP/bin/syft" supply-chain-demo:ci \
+            -o spdx-json=sbom.spdx.json -o cyclonedx-json=sbom.cdx.json
+      - name: Install Grype
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin" v0.114.0
+      - name: Scan SBOM (fail on Critical)
+        run: '"$RUNNER_TEMP/bin/grype" sbom:sbom.spdx.json --fail-on critical -o table'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            07-supply-chain-security/sbom.spdx.json
+            07-supply-chain-security/sbom.cdx.json
+
+  sign-verify:
+    name: cosign sign + attest + verify (hermetic)
+    runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    env:
+      COSIGN_PASSWORD: ""
+      IMAGE: localhost:5000/supply-chain-demo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: v3.1.1
+      - name: Install Syft
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b "$RUNNER_TEMP/bin" v1.45.1
+      - name: Build + push to the local registry
+        id: build
+        run: |
+          docker build -t "$IMAGE:1.0.0" --build-arg VERSION=1.0.0 app
+          docker push "$IMAGE:1.0.0"
+          DIGEST=$(docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$IMAGE:1.0.0" | grep '^localhost:5000' | head -1)
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+      - name: Generate an ephemeral key pair
+        run: cosign generate-key-pair
+      - name: Build an offline signing config (no transparency log / TSA)
+        run: |
+          curl -sSL https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
+            | jq 'del(.rekorTlogUrls) | del(.timestampAuthorityUrls)' > signing_config.json
+      - name: Sign the image
+        run: cosign sign --yes --key cosign.key --signing-config signing_config.json --allow-insecure-registry "${{ steps.build.outputs.digest }}"
+      - name: Generate SBOM and attach it as an attestation
+        run: |
+          "$RUNNER_TEMP/bin/syft" "$IMAGE:1.0.0" -o spdx-json=img.sbom.spdx.json
+          cosign attest --yes --key cosign.key --signing-config signing_config.json \
+            --type spdxjson --predicate img.sbom.spdx.json --allow-insecure-registry "${{ steps.build.outputs.digest }}"
+      - name: Verify the signature (signed image must PASS)
+        run: cosign verify --key cosign.pub --insecure-ignore-tlog=true --allow-insecure-registry "${{ steps.build.outputs.digest }}"
+      - name: Verify the SBOM attestation (must PASS)
+        run: cosign verify-attestation --key cosign.pub --type spdxjson --insecure-ignore-tlog=true --allow-insecure-registry "${{ steps.build.outputs.digest }}"
+      - name: Negative test — unsigned image must be REJECTED
+        run: |
+          docker build -t "$IMAGE:unsigned" --build-arg VERSION=unsigned app
+          docker push "$IMAGE:unsigned"
+          UNS=$(docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$IMAGE:unsigned" | grep '^localhost:5000' | head -1)
+          if cosign verify --key cosign.pub --insecure-ignore-tlog=true --allow-insecure-registry "$UNS"; then
+            echo "ERROR: unsigned image unexpectedly verified"; exit 1
+          fi
+          echo "OK: unsigned image correctly rejected"
+
+  policy:
+    name: kyverno policy tests + schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Kyverno CLI
+        run: |
+          curl -sSLo kyverno.tgz https://github.com/kyverno/kyverno/releases/download/v1.18.1/kyverno-cli_v1.18.1_linux_x86_64.tar.gz
+          tar -xzf kyverno.tgz kyverno && sudo mv kyverno /usr/local/bin/
+      - name: Kyverno test (block vs admit)
+        run: kyverno test policy/tests
+      - name: Install kubeconform
+        run: |
+          curl -sSLo kc.tgz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kc.tgz && sudo mv kubeconform /usr/local/bin/
+      - name: Validate all policy schemas
+        run: |
+          kubeconform -strict -ignore-missing-schemas \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            -summary policy/verify-images.yaml policy/disallow-latest-tag.yaml policy/require-non-root.yaml

@@ -1,0 +1,39 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signatures
+  annotations:
+    policies.kyverno.io/title: Verify Image Signatures (keyless Cosign)
+    policies.kyverno.io/description: >-
+      Admit Pods only when their images carry a valid keyless Cosign signature
+      produced by this repository's GitHub Actions workflow. Unsigned or
+      foreign-signed images are rejected at admission.
+spec:
+  # Enforce = block on failure (Audit would only report). Deprecated alias still
+  # honoured by Kyverno 1.x; see per-rule validate.failureAction for validate rules.
+  validationFailureAction: Enforce
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+  background: false
+  rules:
+    - name: verify-keyless-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/mbongowo/devops/supply-chain-demo*"
+          mutateDigest: true
+          verifyDigest: true
+          required: true
+          attestors:
+            - count: 1
+              entries:
+                - keyless:
+                    # Identity that signed the image = our workflow's OIDC identity.
+                    subject: "https://github.com/mbongowo/DEVOPS/.github/workflows/supply-chain.yml@refs/heads/main"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    rekor:
+                      url: "https://rekor.sigstore.dev"
