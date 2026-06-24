@@ -1,4 +1,4 @@
-# DEVOPS
+# DEVOPS — 15 projects
 
 A monorepo of hands-on DevOps projects, each self-contained in its own
 directory and validated by its own CI pipeline. It holds two collections:
